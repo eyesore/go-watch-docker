@@ -1,4 +1,4 @@
 #!/bin/sh
 
 /run.sh&
-watchman-make -p '**/*.go' --make='/run.sh' -t goapp
+watchman-make -p '**/*.go' --run='/run.sh'
