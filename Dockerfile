@@ -1,4 +1,4 @@
-FROM golang:1.12-alpine
+FROM golang:1.13-alpine
 MAINTAINER Trey Jones "trey@eyesoreinc.com"
 
 ENV WATCHMAN_VERSION '4.9.0'
