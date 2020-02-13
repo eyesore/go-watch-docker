@@ -9,7 +9,7 @@ if [ $? -eq 0 ]; then
     if [ -f $PIDFILE ]; then
         PID=$(cat $PIDFILE)
         echo "Stopping running process: $PID"
-        kill -9 $PID
+        kill -KILL $PID
         rm $PIDFILE
     fi
 
@@ -19,4 +19,3 @@ if [ $? -eq 0 ]; then
         echo $! > $PIDFILE
     fi
 fi
-

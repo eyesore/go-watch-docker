@@ -1,10 +1,13 @@
 FROM golang:1.13-alpine
-MAINTAINER Trey Jones "trey@eyesoreinc.com"
+MAINTAINER Trey Jones "trey@cortexdigitalinc.com"
 
 ENV WATCHMAN_VERSION '4.9.0'
-ENV BUILD_SCRIPT '/usr/local/bin/build-and-run-go-app.sh'
+ENV BUILD_SCRIPT '/usr/local/bin/build-and-run.sh'
 ENV ENTRYPOINT_SCRIPT 'docker-entrypoint.sh'
 ENV ENTRYPOINT_PATH "/usr/local/bin/${ENTRYPOINT_SCRIPT}"
+
+# alternative entrypoint that will build to dist and copy additional files if present
+ENV DIST_ENTRYPOINT '/usr/local/bin/build-for-deploy.sh'
 
 RUN mkdir -p /build/watchman
 
@@ -32,12 +35,20 @@ RUN apk del python-dev py-pip automake autoconf linux-headers \
     rm -R /build/watchman
 # per watchman adjust /proc/sys/fs/inotify/max_* as needed - alpine defaults are already high
 
+# mount here for inputs
 VOLUME /app
 
-COPY watch_and_run.sh "${ENTRYPOINT_PATH}"
-COPY run.sh "${BUILD_SCRIPT}"
+# mount here for outputs when building for deploy
+VOLUME /dist
 
-RUN chmod +x "${BUILD_SCRIPT}" && chmod +x "${ENTRYPOINT_PATH}"
+# all contents will be recursively copied to /dist when building for deploy
+VOLUME /dist-include
+
+COPY docker-entrypoint.sh "${ENTRYPOINT_PATH}"
+COPY build-and-run.sh "${BUILD_SCRIPT}"
+COPY build-for-deploy.sh "${DIST_ENTRYPOINT}"
+
+RUN chmod +x "${BUILD_SCRIPT}" && chmod +x "${ENTRYPOINT_PATH}" && chmod +x "${DIST_ENTRYPOINT}"
 
 WORKDIR /app
 ENTRYPOINT "${ENTRYPOINT_PATH}"
