@@ -1,4 +1,4 @@
-FROM golang:1.13-alpine
+FROM golang:1.16-alpine
 MAINTAINER Trey Jones "trey@cortexdigitalinc.com"
 
 ENV WATCHMAN_VERSION '4.9.0'
@@ -16,7 +16,7 @@ ADD https://github.com/facebook/watchman/archive/v${WATCHMAN_VERSION}.zip     /b
 
 # bash is used by autogen.sh, second line is new deps since after 4.7
 # last line are tools used by `go get`
-RUN apk add --update --no-cache python python-dev py-pip make gcc g++ automake autoconf linux-headers \
+RUN apk add --update --no-cache python3 python3-dev py-pip make gcc g++ automake autoconf linux-headers \
     bash libtool openssl-dev \
     git mercurial subversion  # used by `go get`
 
@@ -30,7 +30,7 @@ RUN cd /build/watchman && \
 
 RUN pip install pywatchman
 
-RUN apk del python-dev py-pip automake autoconf linux-headers \
+RUN apk del python3-dev py-pip automake autoconf linux-headers \
     bash libtool openssl-dev && \
     rm -R /build/watchman
 # per watchman adjust /proc/sys/fs/inotify/max_* as needed - alpine defaults are already high
