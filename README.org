@@ -11,12 +11,13 @@
 	The simplest form is:
 
  #+BEGIN_SRC yaml
-   version: '3'
+	  version: '3'
 
-   services:
-	 app:
-	   image: eyesore/go:1.16.6
-	   volumes: ./:/app
+	  services:
+		app:
+		  image: eyesore/go:1.16.6
+		  volumes:
+			- ./:/app
  #+END_SRC
 
 	The default entrypoint watches all .go files with Watchman.  Whenever a change is detected:
