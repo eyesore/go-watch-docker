@@ -1,4 +1,4 @@
-FROM golang:1.16-alpine
+FROM golang:1.16.6-alpine AS runtime
 MAINTAINER Trey Jones "trey@cortexdigitalinc.com"
 
 ENV WATCHMAN_VERSION '4.9.0'
@@ -9,31 +9,35 @@ ENV ENTRYPOINT_PATH "/usr/local/bin/${ENTRYPOINT_SCRIPT}"
 # alternative entrypoint that will build to dist and copy additional files if present
 ENV DIST_ENTRYPOINT '/usr/local/bin/build-for-deploy.sh'
 
-RUN mkdir -p /build/watchman
+# vcs used by `go get` | python for pywatchman
+RUN apk add --update --no-cache	git mercurial subversion
+
+###################################
+FROM runtime as builder
+RUN apk add --update --no-cache --virtual build-deps python3-dev make \
+	gcc g++ automake autoconf linux-headers \
+	bash  libtool openssl-dev
 
 # install watchman
+RUN mkdir -p /build/watchman
 ADD https://github.com/facebook/watchman/archive/v${WATCHMAN_VERSION}.zip     /build/watchman
 
-# bash is used by autogen.sh, second line is new deps since after 4.7
-# last line are tools used by `go get`
-RUN apk add --update --no-cache python3 python3-dev py-pip make gcc g++ automake autoconf linux-headers \
-    bash libtool openssl-dev \
-    git mercurial subversion  # used by `go get`
-
+# note the expression `./autogen.sh || autoconf` :
+# this ignores an erroneous error in autogen.sh that is not friendly to alpine
 RUN cd /build/watchman && \
     unzip v${WATCHMAN_VERSION}.zip && \
     cd watchman-${WATCHMAN_VERSION} && \
-    ./autogen.sh && \
+    ./autogen.sh || autoconf && \
     ./configure --enable-lenient && \
     make && \
     make install
 
-RUN pip install pywatchman
+############
+FROM runtime AS release
+COPY --from=builder /usr/local/bin/watchman* /usr/local/bin/
 
-RUN apk del python3-dev py-pip automake autoconf linux-headers \
-    bash libtool openssl-dev && \
-    rm -R /build/watchman
-# per watchman adjust /proc/sys/fs/inotify/max_* as needed - alpine defaults are already high
+# runtime dirs?
+COPY --from=builder /usr/local/var/run/watchman /usr/local/var/run/watchman
 
 # mount here for inputs
 VOLUME /app
