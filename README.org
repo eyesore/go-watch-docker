@@ -1,0 +1,51 @@
+* Go-Watch-Docker
+** What is it?
+   This is a Dockerfile for an image including primarily [[https://golang.org/][Go]] and [[https://facebook.github.io/watchman/][Watchman]].  It is sometimes updated to the latest available Go and Watchman versions.
+
+   The main reason to use this Dockerfile would be to automatically rebuild and run your application on save.
+
+   Some other information may be viewed [[https://hub.docker.com/r/eyesore/go][on docker hub.]]
+** How-To
+*** docker-compose
+
+	The simplest form is:
+
+ #+BEGIN_SRC yaml
+   version: '3'
+
+   services:
+	 app:
+	   image: eyesore/go:1.16.6
+	   volumes: ./:/app
+ #+END_SRC
+
+	The default entrypoint watches all .go files with Watchman.  Whenever a change is detected:
+	1. ~go get~ will attempt to import any *new* dependencies (into the container)
+	2. ~go build~ will attempt to compile your project
+	3. Compile failure will display errors in the log, but your previous successful build will continue to run if persistent.
+	4. If the build succeeds, previous instances will be killed and the new version will run.
+
+*** Deployment Features
+	The container also packs a minimal (and not configurable) deployment entrypoint.  This will build your application into a binary named ~app~ in a mounted dist folder.  It will also copy any supporting resources found in a mounted ~dist-include~ folder.  For example:
+
+#+BEGIN_SRC bash
+  docker run --rm -ti --entrypoint /usr/local/bin/build-for-deploy.sh \
+		 -v $(pwd):/dist \
+		 -v $(pwd)/dist-include \
+		 -v $(pwd):/app \
+		 eyesore/go
+#+END_SRC
+
+Or in something like ~docker-compose.deploy.yml~:
+
+#+BEGIN_SRC yaml
+  version: '3'
+
+  services:
+	app:
+	  entrypoint:
+		- /usr/local/bin/build-for-deploy.sh
+	  volumes:
+		- goBuild:/dist
+		- ./dist-include:/dist-include
+#+END_SRC
