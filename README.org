@@ -7,7 +7,6 @@
    Some other information may be viewed [[https://hub.docker.com/r/eyesore/go][on docker hub.]]
 ** How-To
 *** docker-compose
-
 	The simplest form is:
 
  #+BEGIN_SRC yaml
@@ -25,6 +24,37 @@
 	2. ~go build~ will attempt to compile your project
 	3. Compile failure will display errors in the log, but your previous successful build will continue to run if persistent.
 	4. If the build succeeds, previous instances will be killed and the new version will run.
+
+**** Configuration
+
+***** Subcommands, Arguments, and Parameters
+	  If invoking/running your application is not as simple as ~/go/bin/app~, fret not.  There is an environment variable for you: ~$GWD_CMD~
+	  If set, this will be appended to the run command:
+
+#+BEGIN_SRC bash
+  docker run --rm -ti -v $(PWD):/app -e GWD_CMD='start service --with options'
+#+END_SRC
+
+This will result in the your application being started with as ~/go/bin/app start service --with options~
+
+***** Configure the Watchman Trigger
+	  If you need still more control, you also have access to the [[https://facebook.github.io/watchman/docs/cmd/trigger.html][trigger options accepted by Watchman.]]
+	  By creating a JSON file containing a valid trigger object, you can set all available properties and they will be passed to the invocation of trigger by the default entrypoint.  Make the the JSON file containing this configuration available to the container either by mounting it in a volume, or including it in your mounted application (at /app), and set the environment variable ~GWD_CMD_FILE~ with the full path to the file.
+
+The defaults are:
+
+#+BEGIN_SRC json
+  {
+	  "name": "build-and-run",
+	  "append_files": false,
+	  "command": ["/usr/local/bin/build-and-run.sh", "${GWD_CMD}"],
+	  "expression": ["match", "**/*.go", "wholename"]
+  }
+#+END_SRC
+
+***** Local Watchman Config
+	  Including a ~.watchmanconfig~ in the root of your project will also be used:
+	  [[https://facebook.github.io/watchman/docs/config.html#configuration-options][Valid configurations defined by Watchman]].
 
 *** Deployment Features
 	The container also packs a minimal (and not configurable) deployment entrypoint.  This will build your application into a binary named ~app~ in a mounted dist folder.  It will also copy any supporting resources found in a mounted ~dist-include~ folder.  For example:

@@ -1,6 +1,7 @@
 #!/bin/sh
 
 PIDFILE=/var/run/app
+PASSED_ARGS="${@}"
 
 go get
 go build -o /go/bin/app
@@ -13,7 +14,9 @@ if [ $? -eq 0 ]; then
         rm $PIDFILE
     fi
 
-    /go/bin/app start&
+    RUN_CMD="/go/bin/app ${PASSED_ARGS}"
+	echo "run cmd: ${RUN_CMD}"
+	${RUN_CMD} &
 
     if [ $? -eq 0 ]; then
         echo $! > $PIDFILE
