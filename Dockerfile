@@ -1,4 +1,4 @@
-FROM golang:1.16.6-alpine AS runtime
+FROM golang:1.17.3-alpine3.14 AS runtime
 MAINTAINER Trey Jones "trey@cortexdigitalinc.com"
 
 ENV WATCHMAN_VERSION '4.9.0'
