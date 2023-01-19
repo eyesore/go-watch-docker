@@ -4,7 +4,7 @@ PIDFILE=/var/run/app
 PASSED_ARGS="${@}"
 
 go get
-go build -o /go/bin/app
+go build -buildvcs=false -o /go/bin/app
 
 if [ $? -eq 0 ]; then
     if [ -f $PIDFILE ]; then
