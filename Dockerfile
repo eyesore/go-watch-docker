@@ -1,8 +1,6 @@
 FROM golang:1.21.0-alpine3.18 AS runtime
 MAINTAINER Trey Jones "trey@cortexdigitalinc.com"
 
-ENV WATCHMAN_VERSION '4.9.0'
-ENV WATCHMAN_STATEDIR '/run/watchman'
 ENV BUILD_SCRIPT '/usr/local/bin/build-and-run.sh'
 ENV ENTRYPOINT_SCRIPT 'docker-entrypoint.sh'
 ENV ENTRYPOINT_PATH "/usr/local/bin/${ENTRYPOINT_SCRIPT}"
@@ -10,39 +8,22 @@ ENV ENTRYPOINT_PATH "/usr/local/bin/${ENTRYPOINT_SCRIPT}"
 # alternative entrypoint that will build to dist and copy additional files if present
 ENV DIST_ENTRYPOINT '/usr/local/bin/build-for-deploy.sh'
 
-# vcs used by `go get` | pcre for watchman expressions
-RUN apk add --update --no-cache	git mercurial subversion pcre-dev
+# vcs used by `go get`
+RUN apk add --update --no-cache	git mercurial subversion
 
 ###################################
-FROM runtime as builder
-RUN apk add --update --no-cache --virtual build-deps make \
-	gcc g++ automake autoconf linux-headers \
-	bash  libtool openssl-dev
+FROM runtime as watcher
 
-# install watchman
-RUN mkdir -p /build/watchman
-ADD https://github.com/facebook/watchman/archive/v${WATCHMAN_VERSION}.zip     /build/watchman
-
-# note the expression `./autogen.sh || autoconf` :
-# this ignores an erroneous error in autogen.sh that is not friendly to alpine
-RUN cd /build/watchman && \
-	mkdir -p "${WATCHMAN_STATEDIR}" && \
-    unzip v${WATCHMAN_VERSION}.zip && \
-	cd watchman-${WATCHMAN_VERSION} && \
-	autoupdate && \
-    ./autogen.sh || autoconf && \
-    ./configure --enable-lenient --without-python  --enable-statedir="${WATCHMAN_STATEDIR}" && \
-    make && \
-    make install
+RUN apk add --update --no-cache cargo
+RUN cargo install watchexec-cli
 
 ############
 FROM runtime AS release
-COPY --from=builder /usr/local/bin/watchman* /usr/local/bin/
 
-# runtime dir
-# mainly set it other than default just so we know where it is
-# the default is poorly/not documented
-COPY --from=builder "${WATCHMAN_STATEDIR}" "${WATCHMAN_STATEDIR}"
+COPY --from=watcher /root/.cargo/bin/watchexec /usr/local/bin/watchexec
+
+# increase from default max system watches
+RUN echo 'fs.inotify.max_user_watches=65536' >  /etc/sysctl.d/inotify.conf
 
 # mount here for inputs
 VOLUME /app
